@@ -581,6 +581,36 @@ function renderDivisionWinners() {
    function updateBracket() {
   // Update semifinals from quarterfinal winners
   const semifinals = document.querySelectorAll("#semifinals .matchup");
+for(let i=0; i<2; i++) {
+  const team1 = qfWinners[i*2];
+  const team2 = qfWinners[i*2+1];
+  const matchup = semifinals[i];
+  matchup.innerHTML = "";
+
+  // Add matchup header
+  const header = document.createElement("div");
+  header.style.color = "#00bfff";
+  header.style.fontWeight = "bold";
+  header.style.marginBottom = "0.4rem";
+  header.style.textAlign = "center";
+  header.textContent = `Match ${i + 1}`;
+  matchup.appendChild(header);
+
+  if(team1) {
+    const t1 = createTeamCard(team1, new Set([team1]), () => onTeamSelect("sf", i, team1), false, false);
+    if(sfWinners[i] && sfWinners[i] !== team1) t1.classList.add("disabled");
+    if(sfWinners[i] === team1) t1.classList.add("selected");
+    matchup.appendChild(t1);
+  }
+  if(team2) {
+    const t2 = createTeamCard(team2, new Set([team2]), () => onTeamSelect("sf", i, team2), false, false);
+    if(sfWinners[i] && sfWinners[i] !== team2) t2.classList.add("disabled");
+    if(sfWinners[i] === team2) t2.classList.add("selected");
+    matchup.appendChild(t2);
+  }
+  matchup.style.display = (team1 || team2) ? "flex" : "none";
+}
+const semifinals = document.querySelectorAll("#semifinals .matchup");
   for(let i=0; i<2; i++) {
     const team1 = qfWinners[i*2];
     const team2 = qfWinners[i*2+1];
