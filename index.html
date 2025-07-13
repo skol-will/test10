@@ -634,12 +634,12 @@ function renderDivisionWinners() {
 }
     // Save screenshot button logic
     document.getElementById("saveScreenshotBtn").addEventListener("click", () => {
-      html2canvas(document.getElementById("stage2")).then(canvas => {
-        canvas.toBlob(blob => {
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = "ifl-playoff-bracket.png";
-          a.click();
+  html2canvas(document.getElementById("stage2"), {useCORS: true, scale: 2}).then(canvas => {
+    canvas.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ifl-playoff-bracket.png";
+      a.click();
         });
       });
     });
