@@ -634,16 +634,14 @@ function renderDivisionWinners() {
 }
     // Save screenshot button logic
     document.getElementById("saveScreenshotBtn").addEventListener("click", () => {
-  html2canvas(document.getElementById("stage2"), {useCORS: true, scale: 2}).then(canvas => {
-    canvas.toBlob(blob => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "ifl-playoff-bracket.png";
-      a.click();
-        });
-      });
-    });
-
+  html2canvas(document.getElementById("stage2")).then(canvas => {
+    const imgData = canvas.toDataURL("image/png");
+    // Open image in new tab/window so user can long-press and save manually
+    const imageWindow = window.open('');
+    imageWindow.document.write('<title>Save Image</title>');
+    imageWindow.document.write('<img src="' + imgData + '" style="max-width:100%;height:auto;" />');
+  });
+});
     // Initial render Stage 1
     updateUIStage1();
   </script>
