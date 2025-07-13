@@ -74,22 +74,27 @@
       justify-content: center;
     }
     .team-card {
-      width: 140px;
+      width: 144px;
       height: 40px;
       background-color: #1a1a1a;
       position: relative;
       cursor: pointer;
       overflow: hidden;
-      transition: transform 0.2s ease, background-color 0.3s ease;
+      transition: transform 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
       user-select: none;
       flex-shrink: 0;
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      gap: 0.6rem;
-      padding-left: 6px;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0 8px;
       border-radius: 8px;
       border: 3px solid transparent;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      text-align: center;
+      box-sizing: border-box;
     }
     .team-card img {
       width: 36px;
@@ -97,11 +102,11 @@
       object-fit: contain;
       border-radius: 6px;
       user-select: none;
+      flex-shrink: 0;
     }
+    /* Label is just the text, centered vertically/horizontally by flex */
     .team-card .label {
-      font-weight: bold;
-      color: white;
-      font-size: 14px;
+      flex: 1 1 auto;
       user-select: none;
     }
     .team-card:hover:not(.disabled):not(.selected) {
@@ -183,18 +188,9 @@
       height: 120px;
       object-fit: contain;
     }
-    #champion-name {
+    #champion-card {
       margin-top: 1rem;
-      font-weight: bold;
-      font-size: 1.4rem;
-      color: #00bfff;
-      text-align: center;
-      min-height: 40px;
-    }
-    #champion {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      /* same style as .team-card so no overrides needed */
     }
     /* Responsive */
     @media (max-width: 480px) {
@@ -205,13 +201,11 @@
       .team-card {
         width: 120px;
         height: 34px;
+        font-size: 12px;
       }
       .team-card img {
         width: 32px;
         height: 32px;
-      }
-      .team-card .label {
-        font-size: 12px;
       }
       .bracket {
         grid-template-columns: 1fr;
@@ -298,7 +292,7 @@
     const toStage2Btn = document.getElementById("toStage2Btn");
     const bracketContainer = document.getElementById("bracket");
 
-    // Create team card for stage 1 and 2
+    // Create team card for stage 1 and 2 and bracket with centered text
     function createTeamCard(team, selectedTeams, onClick, disabled=false) {
       const card = document.createElement("div");
       card.className = "team-card";
@@ -423,6 +417,14 @@
         const selectedTeam = selectedTeams[index];
         const card = createBracketTeamCard(team, selectedTeam, teamSelected => {
           selectedTeams[index] = teamSelected;
+          // Reset downstream winners if needed
+          if(round === "quarterfinals") {
+            if(index < 2) sfWinners[0] = null;
+            else sfWinners[1] = null;
+            finalWinner = null;
+          } else if(round === "semifinals") {
+            finalWinner = null;
+          }
           updateBracket();
         });
         // Disable if another team is selected in this matchup
@@ -435,87 +437,82 @@
       return container;
     }
 
-    // Render the entire playoff bracket
+    // Render bracket rounds and champion card
     function renderBracket(playoffTeams) {
       bracketContainer.innerHTML = "";
 
       // Quarterfinals
       const quarterfinals = document.createElement("div");
       quarterfinals.className = "round";
-      quarterfinals.id = "quarterfinals";
-      const qfTitle = document.createElement("h3");
-      qfTitle.textContent = "Quarter Finals";
-      quarterfinals.appendChild(qfTitle);
+      const qTitle = document.createElement("h3");
+      qTitle.textContent = "Quarter Finals";
+      quarterfinals.appendChild(qTitle);
 
-      for(let i = 0; i < 4; i++) {
-        const teams = playoffTeams.quarterfinals[i];
-        const matchup = createMatchup(i+1, teams, "quarterfinals", i, qfWinners, (team) => {
+      playoffTeams.quarterfinals.forEach((teams, i) => {
+        const matchup = createMatchup(i + 1, teams, "quarterfinals", i, qfWinners, (team) => {
           qfWinners[i] = team;
-          // Reset dependent winners
-          if(i < 2) {
-            sfWinners[0] = null;
-          } else {
-            sfWinners[1] = null;
-          }
+          if(i < 2) sfWinners[0] = null;
+          else sfWinners[1] = null;
           finalWinner = null;
           updateBracket();
         });
         quarterfinals.appendChild(matchup);
-      }
-
+      });
       bracketContainer.appendChild(quarterfinals);
 
       // Semifinals
       const semifinals = document.createElement("div");
       semifinals.className = "round";
-      semifinals.id = "semifinals";
       const sfTitle = document.createElement("h3");
       sfTitle.textContent = "Semi Finals";
       semifinals.appendChild(sfTitle);
 
       for(let i = 0; i < 2; i++) {
-        const teams = sfWinners[i] ? [sfWinners[i]] : [];
-        // If both qf winners known, show matchup
+        const teams = [];
         if(i === 0 && qfWinners[0] && qfWinners[1]) {
-          teams.splice(0, teams.length, qfWinners[0], qfWinners[1]);
+          teams.push(qfWinners[0], qfWinners[1]);
         } else if(i === 1 && qfWinners[2] && qfWinners[3]) {
-          teams.splice(0, teams.length, qfWinners[2], qfWinners[3]);
+          teams.push(qfWinners[2], qfWinners[3]);
         }
-        const matchup = createMatchup(i+5, teams, "semifinals", i, sfWinners, (team) => {
-          sfWinners[i] = team;
-          finalWinner = null;
-          updateBracket();
-        });
-        semifinals.appendChild(matchup);
-      }
+        if (sfWinners[i]) teams[0] = sfWinners[i]; // overwrite first team if semifinal winner chosen
 
+        if(teams.length === 2) {
+          const matchup = createMatchup(i + 5, teams, "semifinals", i, sfWinners, (team) => {
+            sfWinners[i] = team;
+            finalWinner = null;
+            updateBracket();
+          });
+          semifinals.appendChild(matchup);
+        }
+      }
       bracketContainer.appendChild(semifinals);
 
       // Finals
       const finals = document.createElement("div");
       finals.className = "round";
-      finals.id = "finals";
       const fTitle = document.createElement("h3");
       fTitle.textContent = "Final";
       finals.appendChild(fTitle);
 
-      const finalTeams = finalWinner ? [finalWinner] : [];
+      const finalTeams = [];
       if(sfWinners[0] && sfWinners[1]) {
-        finalTeams.splice(0, finalTeams.length, sfWinners[0], sfWinners[1]);
+        finalTeams.push(sfWinners[0], sfWinners[1]);
       }
-      const finalMatchup = createMatchup(7, finalTeams, "finals", 0, [finalWinner], (team) => {
-        finalWinner = team;
-        updateChampion();
-        updateBracket();
-      });
-      finals.appendChild(finalMatchup);
+      if(finalWinner) finalTeams[0] = finalWinner;
 
+      if(finalTeams.length === 2) {
+        const finalMatchup = createMatchup(7, finalTeams, "finals", 0, [finalWinner], (team) => {
+          finalWinner = team;
+          updateChampion();
+          updateBracket();
+        });
+        finals.appendChild(finalMatchup);
+      }
       bracketContainer.appendChild(finals);
 
-      // Champion display
+      // Champion
       const championDiv = document.createElement("div");
       championDiv.className = "round";
-      championDiv.id = "champion-round";
       const championTitle = document.createElement("h3");
       championTitle.textContent = "Champion";
       championDiv.appendChild(championTitle);
@@ -523,11 +520,13 @@
       const championCard = document.createElement("div");
       championCard.id = "champion-card";
       championCard.className = "team-card";
+
       if(finalWinner) {
         championCard.innerHTML = `
           <img src="${teamLogos[finalWinner]}" alt="${finalWinner}" />
           <div class="label">${finalWinner}</div>
         `;
+        championCard.classList.add("selected");
       } else {
         championCard.textContent = "Select the final winner above";
         championCard.style.color = "#666";
@@ -537,24 +536,10 @@
       bracketContainer.appendChild(championDiv);
     }
 
-    // Update bracket UI after selections
-    function updateBracket() {
-      // Rerender bracket to reflect disables and selections
-      renderBracket(generatePlayoffTeams());
-    }
-
     // Generate playoff teams from selections
     function generatePlayoffTeams() {
-      const qf = [];
-      // quarterfinals teams: 4 matchups, each with 2 teams
-      // Matchups logic example:
-      // QF1: DivWinner1 vs Wildcard1
-      // QF2: DivWinner2 vs Wildcard2
-      // QF3: DivWinner3 vs Wildcard3
-      // QF4: Wildcard4 vs Wildcard5
       const divWinners = Object.values(selectedDivisionWinners);
       const wildcardsArr = Array.from(selectedWildcards);
-
       return {
         quarterfinals: [
           [divWinners[0], wildcardsArr[0]],
@@ -565,34 +550,22 @@
       };
     }
 
-    // Update champion display after final winner selection
-    function updateChampion() {
-      const champDiv = document.getElementById("champion-card");
-      if(finalWinner) {
-        champDiv.innerHTML = `
-          <img src="${teamLogos[finalWinner]}" alt="${finalWinner}" />
-          <div class="label">${finalWinner}</div>
-        `;
-        champDiv.style.color = "white";
-        champDiv.style.justifyContent = "flex-start";
-      } else {
-        champDiv.textContent = "Select the final winner above";
-        champDiv.style.color = "#666";
-        champDiv.style.justifyContent = "center";
-      }
+    // Update bracket after selections
+    function updateBracket() {
+      renderBracket(generatePlayoffTeams());
     }
 
-    // Initialization
+    // Initialization and event handlers
     function init() {
       renderDivisionWinners();
       renderWildcards();
       updateContinueButton();
 
       toStage2Btn.addEventListener("click", () => {
-        if(!toStage2Btn.disabled) {
+        if (!toStage2Btn.disabled) {
           document.getElementById("stage1").style.display = "none";
           document.getElementById("stage2").style.display = "block";
-          renderBracket(generatePlayoffTeams());
+          updateBracket();
         }
       });
 
